@@ -24,6 +24,10 @@ var paths = {
 };
 
 var options = {
+    browser: {
+        output: 'output/browser.js'
+    },
+    make: {},
     test: {
         main: 'Test.Main',
         output: 'output/test.js'
@@ -63,11 +67,11 @@ function sequence () {
 }
 
 gulp.task('browser', function() {
-    return compile(purescript.psc, [paths.src].concat(paths.bowerSrc), {})
+    return compile(purescript.psc, [paths.src].concat(paths.bowerSrc), options.browser)
 });
 
 gulp.task('make', function() {
-    return compile(purescript.pscMake, [paths.src].concat(paths.bowerSrc), {})
+    return compile(purescript.pscMake, [paths.src].concat(paths.bowerSrc), options.make)
 });
 
 gulp.task('test', function() {

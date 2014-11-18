@@ -2,8 +2,12 @@ module SlamDown where
 
 import Text.Parsing.Parser
 import Text.Parsing.Parser.Combinators
+import Text.Parsing.Parser.String
+
 import Control.Monad.State.Trans
 import Control.Monad.Identity
+import Control.Apply
+import Data.Foldable
 
 --------------------------------------------------------------------------------
 -- Types
@@ -42,4 +46,13 @@ type MDParser a = ParserT String (StateT MDPState Identity) a
 -- Parsers
 --------------------------------------------------------------------------------
 
--- TODO
+emph :: MDParser MDInline
+emph = do
+    delimC <- begin
+    str <- fold <$> (char `manyTill` end delimC)
+    lastC <- end delimC
+    return $ Emphasized $ Plain $ str ++ lastC
+  where
+    inlineWS = [" ", "\t"]
+    begin = oneOf ["*","_"] <* lookAhead (noneOf inlineWS)
+    end c = noneOf inlineWS *> string c

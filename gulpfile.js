@@ -27,7 +27,9 @@ var options = {
     browser: {
         output: 'output/browser.js'
     },
-    make: {},
+    make: {
+        output: 'output/'
+    },
     test: {
         main: 'Test.Main',
         output: 'output/test.js'

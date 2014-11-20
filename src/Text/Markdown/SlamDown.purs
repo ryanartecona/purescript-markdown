@@ -95,10 +95,10 @@ instance cbInfoEq :: Eq CBInfo where
 emph :: MDParser MDInline
 emph = do
     delimC <- begin
-    str <- fold <$> (char `manyTill` end delimC)
+    str <- fold <$> (char `manyTill` lookAhead (end delimC))
     lastC <- end delimC
     return $ Emphasized $ Plain $ str ++ lastC
   where
     inlineWS = [" ", "\t"]
     begin = oneOf ["*", "_"] <* lookAhead (noneOf inlineWS)
-    end c = noneOf inlineWS *> string c
+    end c = noneOf inlineWS <* string c

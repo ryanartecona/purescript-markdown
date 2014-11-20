@@ -12,4 +12,4 @@ parses p s t = case runMDParser p s of
                       <?> "Expected: " ++ show t ++ "\n\n  Actual: " ++ show a ++ "\n\n"
 
 main = do
-  assert $ SlamDown.emph `parses` "*test*" $ Emphasized (Plain "test")
+  assert $ emph `parses` "*test*" $ Emphasized (Plain "test")

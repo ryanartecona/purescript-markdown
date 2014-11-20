@@ -4,9 +4,11 @@ import Text.Parsing.Parser
 import Text.Parsing.Parser.Combinators
 import Text.Parsing.Parser.String
 
+import Control.Monad.State
 import Control.Monad.State.Trans
 import Control.Monad.Identity
 import Control.Apply
+import Data.Either
 import Data.Foldable
 
 --------------------------------------------------------------------------------
@@ -39,7 +41,51 @@ type MDDoc = [MDBlock] -- a markdown document is a list of MDBlocks
 
 data MDPState = MDPState -- will become record of parser state
 
-type MDParser a = ParserT String (StateT MDPState Identity) a
+type MDParser a = ParserT String (State MDPState) a
+
+runMDParser :: forall a. MDParser a -> String -> Either ParseError a
+runMDParser p s = MDPState # (evalState $ runParserT s p)
+
+--------------------------------------------------------------------------------
+-- Typeclass instances
+--------------------------------------------------------------------------------
+
+instance mdInlineOrd :: Ord MDInline where
+  compare (Plain a) (Plain b) = a `compare` b
+  compare (Plain _) (_      ) = GT
+  compare (_      ) (Plain _) = LT
+  compare (Code a x) (Code b y) = case x `compare` y of
+                                       EQ -> a `compare` b
+                                       other -> other
+  compare (Code _ _) (_       ) = GT
+  compare (_       ) (Code _ _) = LT
+  compare (Emphasized a) (Emphasized b) = a `compare` b
+  compare (Emphasized _) (_           ) = GT
+  compare (_           ) (Emphasized _) = LT
+  compare (Strong a)     (Strong b)     = a `compare` b
+  compare (Strong _)     (_       )     = GT
+  compare (_       )     (Strong _)     = LT
+
+instance mdInlineEq :: Eq MDInline where
+  (==) (Plain a) (Plain b) = a == b
+  (==) (Code cba a) (Code cbb b) = cba == cbb && a == b
+  (==) (Emphasized a) (Emphasized b) = a == b
+  (==) (Strong a) (Strong b) = a == b
+  (/=) a b = not (a == b)
+
+instance mdInlineShow :: Show MDInline where
+  show (Plain a) = "Plain (" ++ show a ++ ")"
+  show (Code (CBInfo cb) a) = "Code {" ++ cb ++ "} (" ++ show a ++ ")"
+  show (Emphasized a) = "Emphasized (" ++ show a ++ ")"
+  show (Strong a) = "Strong (" ++ show a ++ ")"
+
+
+instance cbInfoOrd :: Ord CBInfo where
+  compare (CBInfo a) (CBInfo b) = a `compare` b
+
+instance cbInfoEq :: Eq CBInfo where
+  (==) (CBInfo a) (CBInfo b) = a == b
+  (/=) (CBInfo a) (CBInfo b) = a /= b
 
 
 --------------------------------------------------------------------------------
@@ -54,5 +100,5 @@ emph = do
     return $ Emphasized $ Plain $ str ++ lastC
   where
     inlineWS = [" ", "\t"]
-    begin = oneOf ["*","_"] <* lookAhead (noneOf inlineWS)
+    begin = oneOf ["*", "_"] <* lookAhead (noneOf inlineWS)
     end c = noneOf inlineWS *> string c

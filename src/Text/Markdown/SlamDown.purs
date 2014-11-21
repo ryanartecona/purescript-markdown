@@ -8,6 +8,7 @@ import Control.Monad.State
 import Control.Monad.State.Trans
 import Control.Monad.Identity
 import Control.Apply
+import Control.Alt
 import Data.Either
 import Data.Foldable
 
@@ -92,6 +93,8 @@ instance cbInfoEq :: Eq CBInfo where
 -- Parsers
 --------------------------------------------------------------------------------
 
+inlineWS = [" ", "\t"]
+
 emph :: MDParser MDInline
 emph = do
     delimC <- begin
@@ -99,6 +102,15 @@ emph = do
     lastC <- end delimC
     return $ Emphasized $ Plain $ str ++ lastC
   where
-    inlineWS = [" ", "\t"]
     begin = oneOf ["*", "_"] <* lookAhead (noneOf inlineWS)
     end c = noneOf inlineWS <* string c
+
+strong :: MDParser MDInline
+strong = do
+    delimCC <- begin
+    str <- fold <$> (char `manyTill` lookAhead (end delimCC))
+    lastC <- end delimCC
+    return $ Strong $ Plain $ str ++ lastC
+  where
+    begin = (string "**" <|> string "__") <* lookAhead (noneOf inlineWS)
+    end cc = noneOf inlineWS <* string cc

@@ -19,6 +19,7 @@ parseFails p s = case runMDParser p s of
 
 main = do
   assert $ emph `parses` "*test*" $ Emphasized (Plain "test")
+  assert $ emph `parses` "_test_" $ Emphasized (Plain "test")
   assert $ emph `parses` "*two words*" $ Emphasized (Plain "two words")
   assert $ emph `parseFails` "*word"
   assert $ emph `parseFails` "word*"
@@ -26,3 +27,15 @@ main = do
   assert $ emph `parseFails` "* notadjacent*"
   assert $ emph `parseFails` "*not adjacent *"
   assert $ emph `parseFails` "*notadjacent *"
+
+  assert $ strong `parses` "**strong**" $ Strong (Plain "strong")
+  assert $ strong `parses` "__strong__" $ Strong (Plain "strong")
+  assert $ strong `parses` "**two words**" $ Strong (Plain "two words")
+  assert $ strong `parseFails` "**word"
+  assert $ strong `parseFails` "word**"
+  assert $ strong `parseFails` "**word*"
+  assert $ strong `parseFails` "*word*"
+  assert $ strong `parseFails` "** nope**"
+  assert $ strong `parseFails` "** not adjacent**"
+  assert $ strong `parseFails` "**nope **"
+  assert $ strong `parseFails` "**not adjacent **"

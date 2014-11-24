@@ -3,11 +3,12 @@ module Test.Main where
 import SlamDown
 import Test.StrongCheck
 import Data.Either
+{-- import Text.Parsing.Parser.String --}
 
 parses :: forall a. (Eq a, Show a) => MDParser a -> String -> a -> Result
 parses p s t = case runMDParser p s of
-                    Left _ -> false
-                      <?> "Failed to parse: " ++ show s ++ "\n  into: " ++ show t ++ "\n\n"
+                    Left e -> false
+                      <?> "Failed to parse: " ++ show s ++ "\n  into: " ++ show t ++ "\n error: " ++ show e ++ "\n\n"
                     Right a -> a == t
                       <?> "Expected: " ++ show t ++ "\n\n  Actual: " ++ show a ++ "\n\n"
 
@@ -39,3 +40,11 @@ main = do
   assert $ strong `parseFails` "** not adjacent**"
   assert $ strong `parseFails` "**nope **"
   assert $ strong `parseFails` "**not adjacent **"
+
+  {-- assert $ (notFollowedBy $ string "s") `parses` "n" $ unit --}
+  {-- assert $ (notFollowedBy $ string "s") `parseFails` "s" --}
+  assert $ code `parses` "`code`" $ Code (CBInfo "") "code"
+  assert $ code `parses` "``code``" $ Code (CBInfo "") "code"
+  assert $ code `parses` "``co`de``" $ Code (CBInfo "") "co`de"
+  assert $ code `parses` "` code `" $ Code (CBInfo "") "code"
+  assert $ code `parses` "`` ` ``" $ Code (CBInfo "") "`"

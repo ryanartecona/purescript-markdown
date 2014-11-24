@@ -9,6 +9,8 @@ import Control.Monad.State.Trans
 import Control.Monad.Identity
 import Control.Apply
 import Control.Alt
+import Control.Alternative
+import Data.String
 import Data.Either
 import Data.Foldable
 
@@ -21,7 +23,7 @@ data MDBlock = HorizontalRule
              | Blockquote [MDBlock]
              | OrderedList StartIndex [MDBlock]
              | UnorderedList [MDBlock]
-             | CodeBlock String
+             | CodeBlock CBInfo String
              | Paragraph [MDInline]
 
 data HLevel = H1 | H2 | H3 | H4 | H5 | H6
@@ -93,8 +95,6 @@ instance cbInfoEq :: Eq CBInfo where
 -- Parsers
 --------------------------------------------------------------------------------
 
-inlineWS = [" ", "\t"]
-
 emph :: MDParser MDInline
 emph = do
     delimC <- begin
@@ -102,8 +102,8 @@ emph = do
     lastC <- end delimC
     return $ Emphasized $ Plain $ str ++ lastC
   where
-    begin = oneOf ["*", "_"] <* lookAhead (noneOf inlineWS)
-    end c = noneOf inlineWS <* string c
+    begin = oneOf ["*", "_"] <* lookAhead notAnInlineWS
+    end c = notAnInlineWS <* string c
 
 strong :: MDParser MDInline
 strong = do
@@ -112,5 +112,51 @@ strong = do
     lastC <- end delimCC
     return $ Strong $ Plain $ str ++ lastC
   where
-    begin = (string "**" <|> string "__") <* lookAhead (noneOf inlineWS)
-    end cc = noneOf inlineWS <* string cc
+    begin = (string "**" <|> string "__") <* lookAhead notAnInlineWS
+    end cc = notAnInlineWS <* string cc
+
+code :: MDParser MDInline
+code = do
+    bts <- backtickS
+    str <- innerCode bts
+    string bts
+    return $ Code (CBInfo "") (trim str)
+  where
+    backtickS = fold <$> many1 (string "`")
+    innerCodeNonNewline bts = fold <$> many1 ((notFollowedBy (string bts {-- <|> newline --})) *> char)
+    innerCode bts = (<$>) fold $ innerCodeNonNewline bts `sepBy` try hardwrapWS
+
+--------------------------------------------------------------------------------
+-- Helpers/Combinators
+--------------------------------------------------------------------------------
+
+inlineWScs = [" ", "\t"]
+
+anInlineWS :: forall m. (Monad m) => ParserT String m String
+anInlineWS = oneOf inlineWScs
+
+notAnInlineWS :: forall m. (Monad m) => ParserT String m String
+notAnInlineWS = noneOf inlineWScs
+
+inlineWS :: forall m. (Monad m) => ParserT String m String
+inlineWS = fold <$> (anInlineWS `manyTill` lookAhead notAnInlineWS)
+
+inlineWS_ :: forall m. (Monad m) => ParserT String m Unit
+inlineWS_ = void (anInlineWS `manyTill` lookAhead notAnInlineWS)
+
+newline :: forall m. (Monad m) => ParserT String m String
+newline = string "\n" <|> (string "\r" *> ("\n" `option` string "\n")) <?> "newline"
+
+-- NOTE: currently only returns the inlineWS, not the hardwrap newlines :/
+hardwrapWS :: forall m. (Monad m) => ParserT String m String
+hardwrapWS = inlineWS <* optional (newline <* notFollowedBy (inlineWS_ *> newline))
+
+notFollowedBy :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m Unit
+notFollowedBy p = ParserT $ \s -> do
+  o <- unParserT p s
+  return $ case o.result of
+    Left _ -> {input: s, result: Right unit, consumed: false}
+    Right _ -> {input: s, result: Left $ ParseError {message: "Negated parser succeeded"}, consumed: false}
+
+-- many1 :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m [a]
+many1 = some

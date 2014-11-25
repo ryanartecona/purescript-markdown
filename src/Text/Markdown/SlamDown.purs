@@ -151,6 +151,7 @@ newline = string "\n" <|> (string "\r" *> ("\n" `option` string "\n")) <?> "newl
 hardwrapWS :: forall m. (Monad m) => ParserT String m String
 hardwrapWS = inlineWS <* optional (newline <* notFollowedBy (inlineWS_ *> newline))
 
+-- NOTE: will be removable in next version of purescript-parsing
 notFollowedBy :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m Unit
 notFollowedBy p = try $ (try p >> fail "Negated parser succeeded") <|> return unit
   where (>>) a b = a >>= const b

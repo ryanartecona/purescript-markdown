@@ -152,11 +152,8 @@ hardwrapWS :: forall m. (Monad m) => ParserT String m String
 hardwrapWS = inlineWS <* optional (newline <* notFollowedBy (inlineWS_ *> newline))
 
 notFollowedBy :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m Unit
-notFollowedBy p = ParserT $ \s -> do
-  o <- unParserT p s
-  return $ case o.result of
-    Left _ -> {input: s, result: Right unit, consumed: false}
-    Right _ -> {input: s, result: Left $ ParseError {message: "Negated parser succeeded"}, consumed: false}
+notFollowedBy p = try $ (try p >> fail "Negated parser succeeded") <|> return unit
+  where (>>) a b = a >>= const b
 
 -- many1 :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m [a]
 many1 = some

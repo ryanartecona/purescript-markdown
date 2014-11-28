@@ -48,3 +48,5 @@ main = do
   assert $ code `parses` "``co`de``" $ Code (CBInfo "") "co`de"
   assert $ code `parses` "` code `" $ Code (CBInfo "") "code"
   assert $ code `parses` "`` ` ``" $ Code (CBInfo "") "`"
+  assert $ code `parses` "`` hard\nwrap ``" $ Code (CBInfo "") "hard wrap"
+  assert $ code `parses` "`` multi\nhard\nwraps ``" $ Code (CBInfo "") "multi hard wraps"

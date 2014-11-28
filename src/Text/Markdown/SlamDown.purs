@@ -10,7 +10,8 @@ import Control.Monad.Identity
 import Control.Apply
 import Control.Alt
 import Control.Alternative
-import Data.String
+import Data.String hiding (replace)
+import Data.String.Regex (regex, replace, parseFlags)
 import Data.Either
 import Data.Foldable
 
@@ -120,11 +121,12 @@ code = do
     bts <- backtickS
     str <- innerCode bts
     string bts
-    return $ Code (CBInfo "") (trim str)
+    return $ Code (CBInfo "") (replace collapseWSRegex (trim str) " ")
   where
     backtickS = fold <$> many1 (string "`")
-    innerCodeNonNewline bts = fold <$> many1 ((notFollowedBy (string bts {-- <|> newline --})) *> char)
-    innerCode bts = (<$>) fold $ innerCodeNonNewline bts `sepBy` try hardwrapWS
+    innerCodeNonNewline bts = fold <$> many1 ((notFollowedBy (string bts <|> newline )) *> char)
+    innerCode bts = joinWith " " <$> (innerCodeNonNewline bts `sepBy` try hardwrapWS)
+    collapseWSRegex = "\\W+" `regex` parseFlags "g"
 
 --------------------------------------------------------------------------------
 -- Helpers/Combinators

@@ -50,3 +50,6 @@ main = do
   assert $ code `parses` "`` ` ``" $ Code (CBInfo "") "`"
   assert $ code `parses` "`` hard\nwrap ``" $ Code (CBInfo "") "hard wrap"
   assert $ code `parses` "`` multi\nhard\nwraps ``" $ Code (CBInfo "") "multi hard wraps"
+  assert $ code `parseFails` "``"
+  assert $ code `parseFails` "```nope``"
+  assert $ code `parseFails` "```\n\nnew paragraph```"

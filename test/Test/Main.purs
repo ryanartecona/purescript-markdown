@@ -3,6 +3,7 @@ module Test.Main where
 import SlamDown
 import Test.StrongCheck
 import Data.Either
+import Data.Maybe
 {-- import Text.Parsing.Parser.String --}
 
 parses :: forall a. (Eq a, Show a) => MDParser a -> String -> a -> Result
@@ -53,3 +54,10 @@ main = do
   assert $ code `parseFails` "``"
   assert $ code `parseFails` "```nope``"
   assert $ code `parseFails` "```\n\nnew paragraph```"
+
+  assert $ autolink `parses` "</path>" $ Link {text: Plain "/path", href: "/path", title: Nothing}
+  assert $ autolink `parses` "<http://domain.com>" $ Link {text: Plain "http://domain.com", href: "http://domain.com", title: Nothing}
+  assert $ autolink `parses` "</>" $ Link {text: Plain "/", href: "/", title: Nothing}
+  assert $ autolink `parseFails` "< nope>"
+  assert $ autolink `parseFails` "<nope >"
+  assert $ autolink `parseFails` "<not ok>"

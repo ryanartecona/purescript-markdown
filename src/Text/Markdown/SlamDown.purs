@@ -12,6 +12,7 @@ import Control.Alt
 import Control.Alternative
 import Data.String hiding (replace)
 import Data.String.Regex (regex, replace, parseFlags)
+import Data.Maybe
 import Data.Either
 import Data.Foldable
 
@@ -35,6 +36,7 @@ data MDInline = Plain String
               | Code CBInfo String
               | Emphasized MDInline
               | Strong MDInline
+              | Link {title :: Maybe String, href :: String, text :: MDInline}
 
 newtype CBInfo = CBInfo String
 
@@ -69,19 +71,33 @@ instance mdInlineOrd :: Ord MDInline where
   compare (Strong a)     (Strong b)     = a `compare` b
   compare (Strong _)     (_       )     = GT
   compare (_       )     (Strong _)     = LT
+  compare (Link a)       (Link b)       =
+    case a.href `compare` b.href of
+         EQ -> case a.title `compare` b.title of
+                    EQ -> a.text `compare` b.text
+                    other -> other
+         other -> other
+  compare (Link a)       (_     )       = GT
+  compare (_     )       (Link b)       = LT
+
 
 instance mdInlineEq :: Eq MDInline where
-  (==) (Plain a) (Plain b) = a == b
-  (==) (Code cba a) (Code cbb b) = cba == cbb && a == b
+  (==) (Plain a)      (Plain b)      = a == b
+  (==) (Code cba a)   (Code cbb b)   = cba == cbb && a == b
   (==) (Emphasized a) (Emphasized b) = a == b
-  (==) (Strong a) (Strong b) = a == b
+  (==) (Strong a)     (Strong b)     = a == b
+  (==) (Link a)       (Link b)       = a.href == b.href && a.title == b.title && a.text == b.text
+  (==) _              _              = false
+
   (/=) a b = not (a == b)
+
 
 instance mdInlineShow :: Show MDInline where
   show (Plain a) = "Plain (" ++ show a ++ ")"
   show (Code (CBInfo cb) a) = "Code {" ++ cb ++ "} (" ++ show a ++ ")"
   show (Emphasized a) = "Emphasized (" ++ show a ++ ")"
   show (Strong a) = "Strong (" ++ show a ++ ")"
+  show (Link a) = "Link {href: " ++ show a.href ++ ", title: " ++ show a.title ++ "} (" ++ show a.text ++ ")"
 
 
 instance cbInfoOrd :: Ord CBInfo where
@@ -127,6 +143,20 @@ code = do
     innerCodeNonNewline bts = fold <$> many1 ((notFollowedBy (string bts <|> newline )) *> char)
     innerCode bts = joinWith " " <$> (innerCodeNonNewline bts `sepBy` try hardwrapWS)
     collapseWSRegex = "\\W+" `regex` parseFlags "g"
+
+autolink :: MDParser MDInline
+autolink = do
+    string "<"
+    s <- scheme
+    p <- path
+    string ">"
+    let href = (maybe "" (\s -> s ++ "://") s) ++ p
+    return $ Link {text: Plain href, href: href, title: Nothing}
+  where
+    justScheme = (Just <<< fold) <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS) <* string "://")
+    noScheme = return Nothing
+    scheme = try justScheme <|> noScheme
+    path = fold <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS))
 
 --------------------------------------------------------------------------------
 -- Helpers/Combinators

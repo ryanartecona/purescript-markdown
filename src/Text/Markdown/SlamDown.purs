@@ -147,21 +147,28 @@ code = do
 autolink :: MDParser MDInline
 autolink = do
     string "<"
-    s <- scheme
-    p <- path
+    l <- link
     string ">"
-    let text = if s == "mailto:" then p else s ++ p
-        href = s ++ p
+    let text = if l.scheme == "mailto:" then l.path else l.scheme ++ l.path
+        href = l.scheme ++ l.path
     return $ Link {text: Plain text, href: href, title: Nothing}
   where
-    scheme = choice [justScheme, emailScheme] <|> noScheme
+    link = choice [uri, email, raw]
       where
-        justScheme = try (fold <$> (notAnInlineWS `manyTill` (string ">" <|> string "://")) <+> string "://")
-        emailScheme = do
-            p <- lookAhead path
-            if test emailRegex p then return "mailto:" else fail "not an email autolink"
-        noScheme = return ""
+        uri = try $ do
+          s <- (fold <$> (notAnInlineWS `manyTill` (string ">" <|> string "://")) <+> string "://")
+          p <- path
+          return {scheme: s, path: p}
+        email = try $ do
+            p <- path
+            if test emailRegex p
+               then return {scheme: "mailto:", path: p}
+               else fail "not an email autolink"
+        raw = do
+          p <- path
+          return {scheme: "", path: p}
     path = fold <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS))
+    -- from the CommonMark spec http://spec.commonmark.org/0.12/#email-autolink
     emailRegex = regex "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" (parseFlags "g")
 
 --------------------------------------------------------------------------------

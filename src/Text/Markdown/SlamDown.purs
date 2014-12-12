@@ -11,7 +11,7 @@ import Control.Alt
 import Control.Alternative
 import Data.Identity
 import Data.String hiding (replace)
-import Data.String.Regex (regex, replace, parseFlags)
+import Data.String.Regex (regex, replace, test, parseFlags)
 import Data.Maybe
 import Data.Either
 import Data.Foldable
@@ -150,13 +150,19 @@ autolink = do
     s <- scheme
     p <- path
     string ">"
-    let href = (maybe "" (\s -> s ++ "://") s) ++ p
-    return $ Link {text: Plain href, href: href, title: Nothing}
+    let text = if s == "mailto:" then p else s ++ p
+        href = s ++ p
+    return $ Link {text: Plain text, href: href, title: Nothing}
   where
-    justScheme = (Just <<< fold) <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS) <* string "://")
-    noScheme = return Nothing
-    scheme = try justScheme <|> noScheme
+    scheme = choice [justScheme, emailScheme] <|> noScheme
+      where
+        justScheme = try (fold <$> (notAnInlineWS `manyTill` (string ">" <|> string "://")) <+> string "://")
+        emailScheme = do
+            p <- lookAhead path
+            if test emailRegex p then return "mailto:" else fail "not an email autolink"
+        noScheme = return ""
     path = fold <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS))
+    emailRegex = regex "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" (parseFlags "g")
 
 --------------------------------------------------------------------------------
 -- Helpers/Combinators
@@ -185,3 +191,9 @@ hardwrapWS = inlineWS <* optional (newline <* notFollowedBy (inlineWS_ *> newlin
 
 -- many1 :: forall s a m. (Monad m) => ParserT s m a -> ParserT s m [a]
 many1 = some
+
+(<+>) :: forall s a m. (Monad m, Semigroup a) => ParserT s m a -> ParserT s m a -> ParserT s m a
+(<+>) p1 p2 = do
+  r1 <- p1
+  r2 <- p2
+  return (r1 <> r2)

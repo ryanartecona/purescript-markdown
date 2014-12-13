@@ -63,3 +63,13 @@ main = do
   assert $ autolink `parseFails` "<nope >"
   assert $ autolink `parseFails` "<not ok>"
   assert $ autolink `parseFails` "<>"
+
+  assert $ inlinelink `parses` "[go](http://somewhere.com)" $ Link {text: Plain "go", href: "http://somewhere.com", title: Nothing}
+  assert $ inlinelink `parses` "[section](#some-section)" $ Link {text: Plain "section", href: "#some-section", title: Nothing}
+  assert $ inlinelink `parses` "[go](/here)" $ Link {text: Plain "go", href: "/here", title: Nothing}
+  assert $ inlinelink `parses` "[go](/there (withtitle))" $ Link {text: Plain "go", href: "/there", title: Just "withtitle"}
+  assert $ inlinelink `parses` "[go](/there 'withtitle')" $ Link {text: Plain "go", href: "/there", title: Just "withtitle"}
+  assert $ inlinelink `parses` "[go](/there \"withtitle\")" $ Link {text: Plain "go", href: "/there", title: Just "withtitle"}
+  assert $ inlinelink `parseFails` "[](#some-section)"
+  assert $ inlinelink `parseFails` "[go] (/here)"
+  assert $ inlinelink `parseFails` "[unbal]anced](/path)"

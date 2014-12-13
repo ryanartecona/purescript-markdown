@@ -171,6 +171,27 @@ autolink = do
     -- from the CommonMark spec http://spec.commonmark.org/0.12/#email-autolink
     emailRegex = regex "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" (parseFlags "g")
 
+inlinelink :: MDParser MDInline
+inlinelink = do
+    string "["
+    text <- linkText
+    string "]("
+    dest <- linkDest
+    title <- option (Nothing) (Just <$> try (inlineWS_ *> linkTitle))
+    string ")"
+    return $ Link {text: Plain text, href: dest, title: title}
+  where
+    linkText = fold <$> (many1 (notFollowedBy (string "]") *> notAnInlineWS))
+    linkDest = fold <$> (notAnInlineWS `manyTill` lookAhead (string " " <|> string ")"))
+    linkTitle = choice $
+        [ "(" `surroundTitle` ")"
+        , "\"" `surroundTitle` "\""
+        , "'" `surroundTitle` "'"
+        ]
+      where
+        inTitle term = fold <$> (notAnInlineWS `manyTill` lookAhead (string term <|> string ")"))
+        surroundTitle open close = between (string open) (string close) (inTitle close)
+
 --------------------------------------------------------------------------------
 -- Helpers/Combinators
 --------------------------------------------------------------------------------

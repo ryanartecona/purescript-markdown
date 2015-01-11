@@ -203,7 +203,7 @@ instance cbInfoShow :: Show CBInfo where
 
 
 --------------------------------------------------------------------------------
--- Parsers
+-- Inline Parsers
 --------------------------------------------------------------------------------
 
 emph :: MDParser MDInline
@@ -287,6 +287,17 @@ inlinelink = do
         surroundTitle open close = between (string open) (string close) (inTitle close)
 
 --------------------------------------------------------------------------------
+-- Block Parsers
+--------------------------------------------------------------------------------
+
+hrule :: MDParser MDBlock
+hrule = do
+    atMost 3 $ string " "
+    choice $ (\s -> atLeast 3 (string s <* optional inlineWS_)) <$> ["-", "_", "*"]
+    void (try newline) <|> eof
+    return HorizontalRule
+
+--------------------------------------------------------------------------------
 -- Helpers/Combinators
 --------------------------------------------------------------------------------
 
@@ -299,10 +310,10 @@ notAnInlineWS :: forall m. (Monad m) => ParserT String m String
 notAnInlineWS = noneOf inlineWScs
 
 inlineWS :: forall m. (Monad m) => ParserT String m String
-inlineWS = fold <$> (anInlineWS `manyTill` lookAhead notAnInlineWS)
+inlineWS = fold <$> (anInlineWS `manyTill` lookAhead (void notAnInlineWS <|> eof))
 
 inlineWS_ :: forall m. (Monad m) => ParserT String m Unit
-inlineWS_ = void (anInlineWS `manyTill` lookAhead notAnInlineWS)
+inlineWS_ = void (anInlineWS `manyTill` lookAhead (void notAnInlineWS <|> eof))
 
 newline :: forall m. (Monad m) => ParserT String m String
 newline = string "\n" <|> (string "\r" *> ("\n" `option` string "\n")) <?> "newline"
@@ -319,3 +330,17 @@ many1 = some
   r1 <- p1
   r2 <- p2
   return (r1 <> r2)
+
+atLeast :: forall s a m. (Monad m) => Number -> ParserT s m a -> ParserT s m [a]
+atLeast n p = atLeastRec [] n
+  where
+    atLeastRec r 0 = (p >>= \r' -> atLeastRec (r ++ [r']) 0) <|> return r
+    atLeastRec r n = do
+      r' <- p
+      atLeastRec (r ++ [r']) (n - 1)
+
+atMost :: forall s a m. (Monad m) => Number -> ParserT s m a -> ParserT s m [a]
+atMost n p = atMostRec [] n
+  where
+    atMostRec r 0 = return r
+    atMostRec r n = (p >>= \r' -> atMostRec (r ++ [r']) (n - 1)) <|> return r

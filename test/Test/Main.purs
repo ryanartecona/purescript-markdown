@@ -70,3 +70,16 @@ main = do
   assert $ inlinelink `parseFails` "[](#some-section)"
   assert $ inlinelink `parseFails` "[go] (/here)"
   assert $ inlinelink `parseFails` "[unbal]anced](/path)"
+
+  assert $ hrule `parses` "---" $ HorizontalRule
+  assert $ hrule `parses` "---\n" $ HorizontalRule
+  assert $ hrule `parses` "___" $ HorizontalRule
+  assert $ hrule `parses` "***" $ HorizontalRule
+  assert $ hrule `parses` "------" $ HorizontalRule
+  assert $ hrule `parses` "------\n" $ HorizontalRule
+  assert $ hrule `parses` "-  - -     -" $ HorizontalRule
+  assert $ hrule `parses` "---   " $ HorizontalRule
+  assert $ hrule `parses` "---   \n" $ HorizontalRule
+  assert $ hrule `parses` "   ---   " $ HorizontalRule
+  assert $ hrule `parseFails` "*-*"
+  assert $ hrule `parseFails` "---a"

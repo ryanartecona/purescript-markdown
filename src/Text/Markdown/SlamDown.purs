@@ -56,6 +56,97 @@ runMDParser p s = MDPState # (evalState $ runParserT s p)
 -- Typeclass instances
 --------------------------------------------------------------------------------
 
+instance mdBlockOrd :: Ord MDBlock where
+  compare (HorizontalRule) (HorizontalRule) = EQ
+  compare (HorizontalRule) (_             ) = GT
+  compare (_             ) (HorizontalRule) = LT
+  compare (Header l1 u1 a) (Header l2 u2 b) = case l1 `compare` l2 of
+                                                   EQ -> case u1 `compare` u2 of
+                                                              EQ -> a `compare` b
+                                                              other -> other
+                                                   other -> other
+  compare (Header _ _ _  ) (_             ) = GT
+  compare (_             ) (Header _ _ _  ) = LT
+  compare (Blockquote a)   (Blockquote b)   = a `compare` b
+  compare (Blockquote _)   (_           )   = GT
+  compare (_           )   (Blockquote _)   = LT
+  compare (OrderedList i a) (OrderedList j b) = case i `compare` j of
+                                                     EQ -> a `compare` b
+                                                     other -> other
+  compare (OrderedList _ _) (_              ) = GT
+  compare (_              ) (OrderedList _ _) = LT
+  compare (UnorderedList a) (UnorderedList b) = a `compare` b
+  compare (UnorderedList _) (_              ) = GT
+  compare (_              ) (UnorderedList _) = LT
+  compare (CodeBlock i1 a)  (CodeBlock i2 b)  = case i1 `compare` i2 of
+                                                     EQ -> a `compare` b
+                                                     other -> other
+  compare (CodeBlock _ _)   (_             )  = GT
+  compare (_            )   (CodeBlock _  _)  = LT
+  compare (Paragraph a)     (Paragraph b)     = a `compare` b
+  compare (Paragraph _)     (_          )     = GT
+  compare (_          )     (Paragraph _)     = LT
+
+instance mdBlockEq :: Eq MDBlock where
+  (==) (HorizontalRule)  (HorizontalRule)  = true
+  (==) (Header l1 u1 a)  (Header l2 u2 b)  = l1 == l2 && u1 == u2 && a == b
+  (==) (Blockquote a)    (Blockquote b)    = a == b
+  (==) (OrderedList i a) (OrderedList j b) = i == j && a == b
+  (==) (UnorderedList a) (UnorderedList b) = a == b
+  (==) (CodeBlock i1 a)  (CodeBlock i2 b)  = i1 == i2 && a == b
+  (==) (Paragraph a)     (Paragraph b)     = a == b
+
+  (/=) a b = not (a == b)
+
+instance mdBlockShow :: Show MDBlock where
+  show (HorizontalRule)  = "HorizontalRule"
+  show (Header l u h)    = "Header {level: " ++ show l ++ ", underline: " ++ show u ++ "} (" ++ show h ++ ")"
+  show (Blockquote a)    = "Blockquote (" ++ show a ++ ")"
+  show (OrderedList i a) = "OrderedList {startIndex: " ++ show i ++ "} (" ++ show a ++ ")"
+  show (UnorderedList a) = "UnorderedList (" ++ show a ++ ")"
+  show (CodeBlock i a)   = "CodeBlock {info: " ++ show i ++ "} (" ++ show a ++ ")"
+  show (Paragraph a)     = "Paragraph (" ++ show a ++ ")"
+
+hl2n :: HLevel -> Number
+hl2n H1 = 1
+hl2n H2 = 2
+hl2n H3 = 3
+hl2n H4 = 4
+hl2n H5 = 5
+hl2n H6 = 6
+
+instance hLevelOrd :: Ord HLevel where
+  compare a b = compare (hl2n a) (hl2n b)
+
+instance hLevelEq :: Eq HLevel where
+  (==) a b = (hl2n a) == (hl2n b)
+  (/=) a b = (hl2n a) /= (hl2n b)
+
+instance hLevelShow :: Show HLevel where
+  show H1 = "H1"
+  show H2 = "H2"
+  show H3 = "H3"
+  show H4 = "H4"
+  show H5 = "H5"
+  show H6 = "H6"
+
+hu2n :: HUnderline -> Number
+hu2n HU0 = 0
+hu2n HU1 = 1
+hu2n HU2 = 2
+
+instance hUnderlineOrd :: Ord HUnderline where
+  compare a b = compare (hu2n a) (hu2n b)
+
+instance hUnderlineEq :: Eq HUnderline where
+  (==) a b = (hu2n a) == (hu2n b)
+  (/=) a b = (hu2n a) /= (hu2n b)
+
+instance hUnderlineShow :: Show HUnderline where
+  show HU0 = "HU0"
+  show HU1 = "HU1"
+  show HU2 = "HU2"
+
 instance mdInlineOrd :: Ord MDInline where
   compare (Plain a) (Plain b) = a `compare` b
   compare (Plain _) (_      ) = GT
@@ -106,6 +197,9 @@ instance cbInfoOrd :: Ord CBInfo where
 instance cbInfoEq :: Eq CBInfo where
   (==) (CBInfo a) (CBInfo b) = a == b
   (/=) (CBInfo a) (CBInfo b) = a /= b
+
+instance cbInfoShow :: Show CBInfo where
+  show (CBInfo a) = show a
 
 
 --------------------------------------------------------------------------------

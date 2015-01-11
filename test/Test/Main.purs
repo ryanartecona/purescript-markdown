@@ -24,6 +24,8 @@ main = do
   assert $ emph `parses` "*two words*" $ Emphasized (Plain "two words")
   assert $ emph `parseFails` "*word"
   assert $ emph `parseFails` "word*"
+  assert $ emph `parseFails` "**"
+  assert $ emph `parseFails` "* *"
   assert $ emph `parseFails` "* not adjacent*"
   assert $ emph `parseFails` "* notadjacent*"
   assert $ emph `parseFails` "*not adjacent *"
@@ -36,6 +38,8 @@ main = do
   assert $ strong `parseFails` "word**"
   assert $ strong `parseFails` "**word*"
   assert $ strong `parseFails` "*word*"
+  assert $ strong `parseFails` "****"
+  assert $ strong `parseFails` "** **"
   assert $ strong `parseFails` "** nope**"
   assert $ strong `parseFails` "** not adjacent**"
   assert $ strong `parseFails` "**nope **"

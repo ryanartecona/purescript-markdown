@@ -290,10 +290,10 @@ inlinelink = do
 
 hrule :: MDParser MDBlock
 hrule = do
-    atMost 3 $ string " "
-    choice $ (\s -> atLeast 3 (string s <* optional inlineWS_)) <$> ["-", "_", "*"]
-    void (try newline) <|> eof
-    return HorizontalRule
+  atMost 3 $ string " "
+  choice $ (\s -> atLeast 3 (string s <* optional inlineWS_)) <$> ["-", "_", "*"]
+  void (try newline) <|> eof
+  return HorizontalRule
 
 --------------------------------------------------------------------------------
 -- Helpers/Combinators

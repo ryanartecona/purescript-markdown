@@ -262,8 +262,6 @@ autolink = do
           p <- path
           return {scheme: "", path: p}
     path = fold <$> (many1 (notFollowedBy (string ">") *> notAnInlineWS))
-    -- from the CommonMark spec http://spec.commonmark.org/0.12/#email-autolink
-    emailRegex = regex "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" (parseFlags "g")
 
 inlinelink :: MDParser MDInline
 inlinelink = do
@@ -300,6 +298,9 @@ hrule = do
 --------------------------------------------------------------------------------
 -- Helpers/Combinators
 --------------------------------------------------------------------------------
+
+-- from the CommonMark spec http://spec.commonmark.org/0.12/#email-autolink
+emailRegex = regex "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$" (parseFlags "g")
 
 inlineWScs = [" ", "\t"]
 

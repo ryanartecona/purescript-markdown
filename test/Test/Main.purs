@@ -87,3 +87,21 @@ main = do
   assert $ hrule `parses` "   ---   " $ HorizontalRule
   assert $ hrule `parseFails` "*-*"
   assert $ hrule `parseFails` "---a"
+
+  assert $ atxheader `parses` "# Title" $ Header H1 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Title" $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "### Title" $ Header H3 HU0 (Plain "Title")
+  assert $ atxheader `parses` "#### Title" $ Header H4 HU0 (Plain "Title")
+  assert $ atxheader `parses` "##### Title" $ Header H5 HU0 (Plain "Title")
+  assert $ atxheader `parses` "###### Title" $ Header H6 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Title #" $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Title ######" $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Title #     " $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "##     Title   " $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "   ## Title" $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Title # \n" $ Header H2 HU0 (Plain "Title")
+  assert $ atxheader `parses` "## Multi word title" $ Header H2 HU0 (Plain "Multi word title")
+  assert $ atxheader `parseFails` "    # Title"
+  assert $ atxheader `parseFails` "\\## Title"
+  assert $ atxheader `parseFails` "#\\# Title"
+  assert $ atxheader `parseFails` "####### Title"

@@ -15,6 +15,7 @@ import Data.String.Regex (regex, replace, test, parseFlags)
 import Data.Maybe
 import Data.Either
 import Data.Foldable
+import qualified Data.Array as A
 
 --------------------------------------------------------------------------------
 -- Types
@@ -294,6 +295,35 @@ hrule = do
   choice $ (\s -> atLeast 3 (string s <* optional inlineWS_)) <$> ["-", "_", "*"]
   void (try newline) <|> eof
   return HorizontalRule
+
+atxheader :: MDParser MDBlock
+atxheader = do
+    atMost 3 $ string " "
+    lookAhead $ string "#"
+    hs <- atMost 6 $ string "#"
+    atLeast 1 $ anInlineWS
+    let hlevelMaybe = n2hl $ A.length hs 
+        -- `length hs` should always satisfy 1 ≤ x ≤ 6
+        -- so hlevelMaybe should always be a `Just`
+        hlevel = maybe H6 id hlevelMaybe
+    -- TODO: should parse inlines here, not only Plain strings
+    htext <- fold <$> (char `manyTill` lookAhead endSequence)
+    return $ Header hlevel HU0 (Plain htext)
+  where
+    n2hl 1 = Just H1
+    n2hl 2 = Just H2
+    n2hl 3 = Just H3
+    n2hl 4 = Just H4
+    n2hl 5 = Just H5
+    n2hl 6 = Just H6
+    n2hl _ = Nothing
+
+    endSequence = void $ do
+      optional inlineWS_ 
+      optional $ do
+        many $ string "#" 
+        optional inlineWS_ 
+      void (try newline) <|> eof
 
 --------------------------------------------------------------------------------
 -- Helpers/Combinators
